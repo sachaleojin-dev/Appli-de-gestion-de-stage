@@ -1,0 +1,25 @@
+{
+  "users": [
+    {
+      "id": "etudiant1",
+      "name": "Marie Dupont",
+      "role": "etudiant",
+      "email": "marie.dupont@uni.fr",
+      "specialization": "Informatique"
+    },
+    {
+      "id": "entreprise1",
+      "name": "TechCorp",
+      "role": "entreprise",
+      "email": "rh@techcorp.fr",
+      "sector": "Technologie"
+    },
+    {
+      "id": "admin1",
+      "name": "Admin",
+      "role": "admin",
+      "email": "admin@university.fr",
+      "department": "Bureau des Stages"
+    }
+  ]
+}

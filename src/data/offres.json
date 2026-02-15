@@ -1,0 +1,60 @@
+{
+  "offres": [
+    {
+      "id": "offre1",
+      "title": "Développeur Frontend React",
+      "company": "TechCorp",
+      "companyId": "entreprise1",
+      "description": "Rejoignez notre équipe pour développer des interfaces modernes avec React",
+      "location": "Paris",
+      "duration": "6 mois",
+      "startDate": "2024-09-01",
+      "salary": "800€/mois",
+      "requirements": ["React", "JavaScript", "CSS"],
+      "createdAt": "2024-02-10",
+      "status": "active"
+    },
+    {
+      "id": "offre2",
+      "title": "Développeur Backend Node.js",
+      "company": "TechCorp",
+      "companyId": "entreprise1",
+      "description": "Participez au développement de notre API backend avec Node.js",
+      "location": "Toulouse",
+      "duration": "4 mois",
+      "startDate": "2024-08-15",
+      "salary": "900€/mois",
+      "requirements": ["Node.js", "JavaScript", "MongoDB"],
+      "createdAt": "2024-02-08",
+      "status": "active"
+    },
+    {
+      "id": "offre3",
+      "title": "Analyste Data",
+      "company": "DataInsight",
+      "companyId": "entreprise2",
+      "description": "Analysez des données et créez des visualisations impactantes",
+      "location": "Lyon",
+      "duration": "5 mois",
+      "startDate": "2024-09-15",
+      "salary": "850€/mois",
+      "requirements": ["Python", "SQL", "Pandas"],
+      "createdAt": "2024-02-12",
+      "status": "active"
+    },
+    {
+      "id": "offre4",
+      "title": "Designer UX/UI",
+      "company": "DesignStudio",
+      "companyId": "entreprise3",
+      "description": "Créez des designs modernes et intuitifs pour nos projets",
+      "location": "Bordeaux",
+      "duration": "6 mois",
+      "startDate": "2024-09-01",
+      "salary": "750€/mois",
+      "requirements": ["Figma", "Design", "Prototypage"],
+      "createdAt": "2024-02-05",
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "evaluations": [
+    {
+      "id": "eval1",
+      "studentId": "etudiant1",
+      "studentName": "Marie Dupont",
+      "companyId": "entreprise1",
+      "conventionId": "conv1",
+      "rating": 4.5,
+      "comments": "Marie a montré beaucoup de motivation et de curiosité. Elle a rapidement appris et apporté une contribution significative au projet.",
+      "evaluatedAt": "2024-12-15",
+      "evaluator": "Jean Martin"
+    }
+  ]
+}

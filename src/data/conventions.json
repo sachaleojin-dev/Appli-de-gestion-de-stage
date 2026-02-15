@@ -1,0 +1,32 @@
+{
+  "conventions": [
+    {
+      "id": "conv1",
+      "studentId": "etudiant1",
+      "studentName": "Marie Dupont",
+      "companyId": "entreprise1",
+      "companyName": "TechCorp",
+      "offerId": "offre2",
+      "offerTitle": "Développeur Backend Node.js",
+      "startDate": "2024-08-15",
+      "endDate": "2024-12-15",
+      "status": "validee",
+      "validatedAt": "2024-02-20",
+      "mentor": "Jean Martin"
+    },
+    {
+      "id": "conv2",
+      "studentId": "etudiant2",
+      "studentName": "Pierre Bernard",
+      "companyId": "entreprise1",
+      "companyName": "TechCorp",
+      "offerId": "offre1",
+      "offerTitle": "Développeur Frontend React",
+      "startDate": "2024-09-01",
+      "endDate": "2025-02-28",
+      "status": "en_attente",
+      "validatedAt": null,
+      "mentor": null
+    }
+  ]
+}
