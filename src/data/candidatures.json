@@ -1,0 +1,24 @@
+{
+  "candidatures": [
+    {
+      "id": "cand1",
+      "offerId": "offre1",
+      "studentId": "user@example.com",
+      "studentName": "Jean Dupont",
+      "studentEmail": "user@example.com",
+      "status": "en_attente",
+      "appliedAt": "2024-02-11",
+      "message": "Je suis très intéressé par cette offre de stage"
+    },
+    {
+      "id": "cand2",
+      "offerId": "offre2",
+      "studentId": "user@example.com",
+      "studentName": "Jean Dupont",
+      "studentEmail": "user@example.com",
+      "status": "acceptee",
+      "appliedAt": "2024-02-10",
+      "message": "J'aime beaucoup le backend et Node.js"
+    }
+  ]
+}

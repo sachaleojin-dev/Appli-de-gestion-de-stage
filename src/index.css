@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(135deg, #faf8f6 0%, #f5f0eb 100%);
+  color: #2c2420;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-soft {
+    background: linear-gradient(135deg, #faf8f6 0%, #f5f0eb 100%);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium;
+  }
+
+  .badge-pending {
+    @apply badge bg-amber-100 text-amber-800;
+  }
+
+  .badge-accepted {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-rejected {
+    @apply badge bg-red-100 text-red-800;
+  }
+
+  .badge-validated {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+
+  .card-soft {
+    @apply bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .btn-soft {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply btn-soft bg-primary text-white hover:bg-opacity-90;
+  }
+
+  .btn-secondary {
+    @apply btn-soft bg-secondary text-foreground hover:bg-opacity-80;
+  }
+
+  .btn-accent {
+    @apply btn-soft bg-accent text-foreground hover:bg-opacity-80;
+  }
+
+  .btn-outline {
+    @apply btn-soft bg-transparent border-2 border-border text-foreground hover:bg-muted;
+  }
+
+  .input-soft {
+    @apply w-full px-3 py-2 rounded-lg border border-border bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+}

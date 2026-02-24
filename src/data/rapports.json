@@ -1,0 +1,28 @@
+{
+  "rapports": [
+    {
+      "id": "rapport1",
+      "studentId": "etudiant1",
+      "studentName": "Marie Dupont",
+      "conventionId": "conv1",
+      "title": "Rapport de Stage - TechCorp",
+      "fileName": "rapport_marie_dupont_2024.pdf",
+      "uploadedAt": "2024-12-10",
+      "status": "soumis",
+      "grade": null,
+      "feedback": null
+    },
+    {
+      "id": "rapport2",
+      "studentId": "etudiant2",
+      "studentName": "Pierre Bernard",
+      "conventionId": "conv2",
+      "title": "Rapport de Stage - TechCorp",
+      "fileName": null,
+      "uploadedAt": null,
+      "status": "non_soumis",
+      "grade": null,
+      "feedback": null
+    }
+  ]
+}
