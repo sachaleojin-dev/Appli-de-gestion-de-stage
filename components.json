@@ -1,4 +1,8 @@
 {
+<<<<<<< HEAD
+=======
+  "$schema": "https://ui.shadcn.com/schema.json",
+>>>>>>> 1d50a4e0ad8021b8090356fccc502fd2a5632bb5
   "style": "default",
   "rsc": true,
   "tsx": true,

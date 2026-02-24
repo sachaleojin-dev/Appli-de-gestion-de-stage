@@ -1,9 +1,15 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+<<<<<<< HEAD
 import { supabase } from "@/supabase/supabaseClient";
 import './globals.css'
 
 console.log('Supabase URL:', supabase.supabaseUrl)
+=======
+
+import './globals.css'
+
+>>>>>>> 1d50a4e0ad8021b8090356fccc502fd2a5632bb5
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
