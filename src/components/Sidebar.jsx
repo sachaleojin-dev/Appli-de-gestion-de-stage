@@ -1,51 +1,58 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const studentMenuItems = [
-  { label: 'Tableau de Bord', id: 'dashboard', path: '/' },
-  { label: 'Offres de Stage', id: 'offers', path: '/' },
-  { label: 'Mes Candidatures', id: 'applications', path: '/' },
-  { label: 'Ma Convention', id: 'convention', path: '/convention' },
-  { label: 'Soumettre Rapport', id: 'report', path: '/' },
-  { label: 'Mes Évaluations', id: 'evaluation', path: '/evaluations' }
+  { label: 'Tableau de Bord',   id: 'dashboard',     path: '/' },
+  { label: 'Offres de Stage',   id: 'offers',        path: '/?tab=offers' },
+  { label: 'Mes Candidatures',  id: 'applications',  path: '/?tab=applications' },
+  { label: 'Ma Convention',     id: 'convention',    path: '/convention' },
+  { label: 'Soumettre Rapport', id: 'report',        path: '/?tab=report' },
+  { label: 'Mes Évaluations',   id: 'evaluation',    path: '/evaluations' }
 ]
 
 const companyMenuItems = [
-  { label: 'Tableau de Bord', id: 'dashboard', path: '/' },
-  { label: 'Mes Offres', id: 'offers', path: '/' },
-  { label: 'Ajouter une Offre', id: 'add-offer', path: '/' },
-  { label: 'Mes Candidats', id: 'applications', path: '/candidates' },
-  { label: 'Évaluer Étudiant', id: 'evaluate', path: '/' }
+  { label: 'Tableau de Bord',   id: 'dashboard',     path: '/' },
+  { label: 'Mes Offres',        id: 'offers',        path: '/?tab=offers' },
+  { label: 'Ajouter une Offre', id: 'add-offer',     path: '/?tab=add-offer' },
+  { label: 'Mes Candidats',     id: 'applications',  path: '/candidates' },
+  { label: 'Évaluer Étudiant',  id: 'evaluate',      path: '/?tab=evaluate' }
 ]
 
 const adminMenuItems = [
-  { label: 'Tableau de Bord', id: 'dashboard', path: '/' },
-  { label: 'Conventions', id: 'conventions', path: '/conventions' },
-  { label: 'Rapports', id: 'reports', path: '/reports' },
-  { label: 'Statistiques', id: 'stats', path: '/' }
+  { label: 'Tableau de Bord',   id: 'dashboard',     path: '/' },
+  { label: 'Conventions',       id: 'conventions',   path: '/conventions' },
+  { label: 'Rapports',          id: 'reports',       path: '/reports' },
+  { label: 'Statistiques',      id: 'stats',         path: '/?tab=stats' }
 ]
 
 export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true)
   const { role } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const getMenuItems = () => {
-    switch(role) {
-      case 'etudiant':
-        return studentMenuItems
-      case 'entreprise':
-        return companyMenuItems
-      case 'admin':
-        return adminMenuItems
-      default:
-        return []
+    switch (role) {
+      case 'etudiant':      return studentMenuItems
+      case 'entreprise':    return companyMenuItems
+      case 'administration':
+      case 'admin':         return adminMenuItems
+      default:              return []
     }
   }
 
-  const handleNavigation = (path) => {
-    navigate(path)
+  // Détermine si un item est actif selon l'URL courante
+  const isActive = (item) => {
+    const currentTab = new URLSearchParams(location.search).get('tab')
+    const itemTab = new URLSearchParams(item.path.split('?')[1] || '').get('tab')
+
+    if (item.path === '/' && !currentTab && location.pathname === '/') {
+      return item.id === 'dashboard'
+    }
+    if (itemTab && itemTab === currentTab) return true
+    if (item.path !== '/' && !itemTab) return location.pathname === item.path
+    return false
   }
 
   return (
@@ -63,15 +70,19 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Menu Items */}
+      {/* Menu */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {getMenuItems().map((item) => (
           <button
             key={item.id}
-            onClick={() => handleNavigation(item.path)}
-            className={`w-full text-left px-3 py-2 rounded-lg cursor-pointer text-sm transition-all ${
+            onClick={() => navigate(item.path)}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
               isExpanded ? '' : 'text-center'
-            } text-foreground hover:bg-muted active:bg-primary/10`}
+            } ${
+              isActive(item)
+                ? 'bg-primary/10 text-primary font-semibold'
+                : 'text-foreground hover:bg-muted'
+            }`}
           >
             {isExpanded ? item.label : item.label.charAt(0).toUpperCase()}
           </button>

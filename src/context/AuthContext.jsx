@@ -1,67 +1,103 @@
-import React, { createContext, useState, useContext, useEffect } from 'react'
+import { createContext, useState, useContext, useEffect } from 'react'
+import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 
-// Mock user database
-const USERS = {
-  'user@example.com': { password: 'password', role: 'etudiant', name: 'Jean Dupont' },
-  'entrepris@example.com': { password: 'password', role: 'entreprise', name: 'TechCorp' },
-  'admin@example.com': { password: 'password', role: 'admin', name: 'Administrateur' }
+// ─── Comptes démo (bypass Supabase Auth) ─────────────────────────────────────
+const DEMO_ACCOUNTS = {
+  'user@example.com': {
+    role: 'etudiant',
+    nom: 'Dupont',
+    prenom: 'Jean',
+    name: 'Jean Dupont'
+  },
+  'entreprise@example.com': {
+    role: 'entreprise',
+    nom: 'TechCorp',
+    prenom: '',
+    name: 'TechCorp'
+  },
+  'admin@example.com': {
+    role: 'administration',
+    nom: 'Admin',
+    prenom: '',
+    name: 'Administrateur'
+  }
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('user')
-    if (savedUser) {
+    // Vérifie si un compte démo est en session (localStorage)
+    const savedDemo = localStorage.getItem('demo_user')
+    if (savedDemo) {
       try {
-        setUser(JSON.parse(savedUser))
-      } catch (error) {
-        console.error('Failed to parse saved user:', error)
-        localStorage.removeItem('user')
+        setUser(JSON.parse(savedDemo))
+        setLoading(false)
+        return
+      } catch {
+        localStorage.removeItem('demo_user')
       }
     }
-    setLoading(false)
+
+    // Sinon vérifie la session Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Ne pas écraser un compte démo actif
+      if (!localStorage.getItem('demo_user')) {
+        setUser(session?.user ?? null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  const login = (email, password) => {
-    const userData = USERS[email]
-    
-    if (!userData) {
-      return { success: false, error: 'Email non trouvé' }
-    }
-    
-    if (userData.password !== password) {
-      return { success: false, error: 'Mot de passe incorrect' }
-    }
-
-    const userObj = {
-      email,
-      role: userData.role,
-      name: userData.name
+  const login = async (email, password) => {
+    // ── Compte démo ──────────────────────────────────────────────────────────
+    if (DEMO_ACCOUNTS[email] && password === 'password') {
+      const demoUser = {
+        id: email,
+        email,
+        isDemo: true,
+        user_metadata: DEMO_ACCOUNTS[email]
+      }
+      localStorage.setItem('demo_user', JSON.stringify(demoUser))
+      setUser(demoUser)
+      return { success: true, data: { user: demoUser } }
     }
 
-    setUser(userObj)
-    localStorage.setItem('user', JSON.stringify(userObj))
-    return { success: true }
+    // ── Vrai compte Supabase ──────────────────────────────────────────────────
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { success: false, error: error.message }
+    return { success: true, data }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    localStorage.removeItem('demo_user')
+    await supabase.auth.signOut()
     setUser(null)
-    localStorage.removeItem('user')
   }
 
+  // Compatibilité : role et name accessibles directement
+  const role = user?.user_metadata?.role ?? null
+  const name = user?.user_metadata?.name
+    ?? (user?.user_metadata?.prenom && user?.user_metadata?.nom
+        ? `${user.user_metadata.prenom} ${user.user_metadata.nom}`.trim()
+        : null)
   const isAuthenticated = !!user
-  const role = user?.role
 
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
       role,
+      name,
       loading,
       login,
       logout
@@ -73,8 +109,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider')
   return context
 }

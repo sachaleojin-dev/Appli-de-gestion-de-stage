@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import conventionsData from '../data/conventions.json'
 import rapportsData from '../data/rapports.json'
 import evaluationsData from '../data/evaluations.json'
@@ -8,12 +10,18 @@ import Statistics from '../components/Statistics'
 
 const tabs = [
   { id: 'conventions', label: 'Conventions' },
-  { id: 'reports', label: 'Rapports' },
-  { id: 'stats', label: 'Statistiques' }
+  { id: 'reports',     label: 'Rapports' },
+  { id: 'stats',       label: 'Statistiques' }
 ]
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('conventions')
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'conventions'
+  const setActiveTab = (tab) => setSearchParams({ tab })
+
+  const isDemo = user?.isDemo === true
+
   const [conventions, setConventions] = useState(conventionsData.conventions)
   const [reports, setReports] = useState(rapportsData.rapports)
   const [evaluations, setEvaluations] = useState(evaluationsData.evaluations)
@@ -44,9 +52,14 @@ export default function AdminDashboard() {
         <p className="text-muted-foreground">
           Gérez les conventions, rapports et statistiques des stages
         </p>
+        {isDemo && (
+          <p className="text-xs text-amber-600 bg-amber-50 rounded px-3 py-1 mt-2 inline-block">
+            Mode démonstration — données fictives
+          </p>
+        )}
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card-soft border border-border bg-white">
           <div className="text-center">
@@ -56,13 +69,17 @@ export default function AdminDashboard() {
         </div>
         <div className="card-soft border border-border bg-white">
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-accent">{conventions.filter(c => c.status === 'validee').length}</h3>
+            <h3 className="text-2xl font-bold text-accent">
+              {conventions.filter(c => c.status === 'validee').length}
+            </h3>
             <p className="text-sm text-muted-foreground">Validées</p>
           </div>
         </div>
         <div className="card-soft border border-border bg-white">
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-success">{reports.filter(r => r.fileName).length}</h3>
+            <h3 className="text-2xl font-bold text-success">
+              {reports.filter(r => r.fileName).length}
+            </h3>
             <p className="text-sm text-muted-foreground">Rapports Soumis</p>
           </div>
         </div>
@@ -91,7 +108,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Tab Content */}
+      {/* Contenu */}
       <div className="mt-6">
         {activeTab === 'conventions' && (
           <div>
