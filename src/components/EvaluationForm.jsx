@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-export default function EvaluationForm() {
+export default function EvaluationForm({ studentName = '', onSubmit }) {
   const [formData, setFormData] = useState({
-    studentName: '',
+    studentName,
     rating: 4,
     comments: ''
   })
@@ -10,6 +10,7 @@ export default function EvaluationForm() {
   const handleSubmit = (e) => {
     e.preventDefault()
     console.log('Évaluation soumise:', formData)
+    if (onSubmit) onSubmit(formData)
     setFormData({ studentName: '', rating: 4, comments: '' })
   }
 

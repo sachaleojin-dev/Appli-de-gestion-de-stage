@@ -44,8 +44,22 @@ function AppContent() {
         <Route path="/convention" element={role === 'etudiant' ? <StudentConvention /> : <Navigate to="/" />} />
         <Route path="/evaluations" element={role === 'etudiant' ? <StudentEvaluations /> : <Navigate to="/" />} />
         <Route path="/candidates" element={role === 'entreprise' ? <CompanyCandidates /> : <Navigate to="/" />} />
-        <Route path="/reports" element={role === 'admin' ? <AdminReports /> : <Navigate to="/" />} />
-        <Route path="/conventions" element={role === 'admin' ? <AdminConventions /> : <Navigate to="/" />} />
+        <Route
+          path="/reports"
+          element={
+            (role === 'admin' || role === 'administration')
+              ? <AdminReports />
+              : <Navigate to="/" />
+          }
+        />
+        <Route
+          path="/conventions"
+          element={
+            (role === 'admin' || role === 'administration')
+              ? <AdminConventions />
+              : <Navigate to="/" />
+          }
+        />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>

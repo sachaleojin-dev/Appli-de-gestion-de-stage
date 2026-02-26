@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+// return a default dashboard title for the given role
 const getRoleTitle = (role) => {
   const titles = {
     etudiant: 'Tableau de Bord Étudiant',
@@ -12,9 +13,16 @@ const getRoleTitle = (role) => {
   return titles[role] || 'Gestion de Stage'
 }
 
+// derive a title based on the current location path
+// only display a title on the dashboard root; all other routes hide
+const getPageTitle = (role, pathname) => {
+  return pathname === '/' ? getRoleTitle(role) : ''
+}
+
 export default function Navbar() {
   const { user, role, name, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -33,12 +41,17 @@ export default function Navbar() {
     return user?.email?.[0]?.toUpperCase() || '?'
   }
 
+  const title = getPageTitle(role, location.pathname)
+
   return (
     <nav className="bg-white shadow-sm border-b border-border">
       <div className="px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">
-          {getRoleTitle(role)}
-        </h1>
+        {/* show page-specific title or nothing */}
+        {title && (
+          <h1 className="text-2xl font-bold text-foreground">
+            {title}
+          </h1>
+        )}
 
         <div className="flex items-center gap-4 relative">
           <button

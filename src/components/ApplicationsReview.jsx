@@ -67,6 +67,18 @@ export default function ApplicationsReview({ applications, onUpdateStatus }) {
                   </button>
                 </div>
               )}
+
+              {/* evaluation button available for accepted or validated applications */}
+              {(app.status === 'acceptee' || app.status === 'validee') && onEvaluate && (
+                <div className="flex-shrink-0 mt-2">
+                  <button
+                    onClick={() => onEvaluate(app)}
+                    className="btn-primary text-sm"
+                  >
+                    Évaluer
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )

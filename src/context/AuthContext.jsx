@@ -18,7 +18,8 @@ const DEMO_ACCOUNTS = {
     name: 'TechCorp'
   },
   'admin@example.com': {
-    role: 'administration',
+    // use 'admin' for consistency with route guards
+    role: 'admin',
     nom: 'Admin',
     prenom: '',
     name: 'Administrateur'

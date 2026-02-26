@@ -1,4 +1,4 @@
-export default function OfferManagement({ offers }) {
+export default function OfferManagement({ offers, onEdit, onArchive }) {
   if (offers.length === 0) {
     return (
       <div className="card-soft bg-white text-center py-8">
@@ -34,8 +34,18 @@ export default function OfferManagement({ offers }) {
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <button className="btn-secondary text-sm">Modifier</button>
-              <button className="btn-outline text-sm">Archiver</button>
+              <button
+                onClick={() => onEdit && onEdit(offer)}
+                className="btn-secondary text-sm"
+              >
+                Modifier
+              </button>
+              <button
+                onClick={() => onArchive && onArchive(offer)}
+                className="btn-outline text-sm"
+              >
+                Archiver
+              </button>
             </div>
           </div>
         </div>
