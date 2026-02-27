@@ -4,94 +4,85 @@ import { useAuth } from './AuthContext'
 
 const UserProfileContext = createContext()
 
-// ─── Comptes démo (gardés en fallback) ───────────────────────────────────────
+const DEMO_EMAILS = ['user@example.com', 'entreprise@example.com', 'admin@example.com']
+
 const DEMO_PROFILES = {
   'user@example.com': {
     id: 'user@example.com',
     name: 'Jean Dupont',
+    nom: 'Dupont',
+    prenom: 'Jean',
     email: 'user@example.com',
     role: 'etudiant',
     avatar: 'JD',
-    phone: '+33 6 12 34 56 78',
-    university: 'Université Paris 1',
-    specialization: 'Informatique',
-    bio: 'Étudiant en informatique passionné par le développement web',
-    cvUrl: 'https://example.com/cv-jean-dupont.pdf',
-    github: 'https://github.com/jeandupont',
-    linkedin: 'https://linkedin.com/in/jeandupont',
-    ratings: [
-      { id: 'eval1', company: 'TechCorp', rating: 5, comment: 'Excellent stagiaire, très motivé', date: '2024-01-15' },
-      { id: 'eval2', company: 'WebDev Inc', rating: 4.5, comment: 'Très bonne collaboration', date: '2024-02-20' }
-    ],
-    averageRating: 4.75,
-    stagesCompleted: 2,
-    reportsSubmitted: 1
+    telephone: '+33 6 12 34 56 78',
+    adresse: '',
+    // Champs étudiant — noms identiques à la BDD
+    filiere: 'Informatique',
+    niveau: 'Licence 3',
+    date_naissance: '',
+    cv_url: 'https://example.com/cv-jean-dupont.pdf',
   },
-  'entrepris@example.com': {
-    id: 'entrepris@example.com',
+  'entreprise@example.com': {
+    id: 'entreprise@example.com',
     name: 'TechCorp',
-    email: 'entrepris@example.com',
+    nom: 'TechCorp',
+    prenom: '',
+    email: 'entreprise@example.com',
     role: 'entreprise',
     avatar: 'TC',
-    phone: '+33 1 23 45 67 89',
-    industry: 'Technologie & Développement',
-    location: 'Paris, France',
-    bio: 'Entreprise spécialisée dans les solutions web innovantes',
-    offersPublished: 5,
-    studentsHired: 12,
-    averageRating: 4.6,
-    ratings: [
-      { id: 'eval1', student: 'Jean Dupont', rating: 5, comment: 'Entreprise exceptionnelle', date: '2024-01-15' },
-      { id: 'eval2', student: 'Marie Martin', rating: 4.5, comment: 'Bon environnement de travail', date: '2024-02-20' }
-    ]
+    telephone: '+33 1 23 45 67 89',
+    adresse: 'Paris, France',
+    // Champs entreprise — noms identiques à la BDD
+    nom_societe: 'TechCorp',
+    secteur_activite: 'Technologie & Développement',
+    site_web: 'https://techcorp.fr',
+    description: 'Entreprise spécialisée dans les solutions web innovantes',
+    statut_validation: 'validee',
   },
   'admin@example.com': {
     id: 'admin@example.com',
     name: 'Administrateur',
+    nom: 'Admin',
+    prenom: '',
     email: 'admin@example.com',
-    role: 'admin',
+    role: 'administration',
     avatar: 'AD',
-    phone: '+33 1 98 76 54 32',
-    school: 'Université Paris 1',
-    department: 'Gestion des Stages',
-    bio: "Responsable de la coordination des stages au sein de l'établissement",
-    cvUrl: null,
-    github: null,
-    linkedin: null
+    telephone: '+33 1 98 76 54 32',
+    adresse: '',
+    // Champs admin — noms identiques à la BDD
+    departement: 'Gestion des Stages',
+    fonction: 'Responsable pédagogique',
+    niveau_acces: 'admin',
   }
 }
 
-const DEMO_EMAILS = Object.keys(DEMO_PROFILES)
-
-// ─── Helper : formate les initiales avatar ────────────────────────────────────
-const getInitials = (nom, prenom) => {
-  return `${(prenom?.[0] || '').toUpperCase()}${(nom?.[0] || '').toUpperCase()}`
-}
+const getInitials = (prenom, nom) =>
+  `${(prenom?.[0] || '').toUpperCase()}${(nom?.[0] || '').toUpperCase()}` || '?'
 
 export function UserProfileProvider({ children }) {
   const { user } = useAuth()
   const [profile, setProfile] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
 
-  // ── Charge le profil dès qu'un user est connecté ──────────────────────────
   useEffect(() => {
-    if (!user) {
-      setProfile(null)
-      return
-    }
-    fetchProfile(user)
+    if (!user) { setProfile(null); return }
+    loadProfile(user)
   }, [user])
 
-  const fetchProfile = async (authUser) => {
+  const loadProfile = async (authUser) => {
     const email = authUser.email
 
-    // Compte démo → retourne les données mockées directement
-    if (DEMO_EMAILS.includes(email)) {
-      setProfile(DEMO_PROFILES[email])
+    // ── Compte démo ───────────────────────────────────────────────────────
+    if (authUser.isDemo || DEMO_EMAILS.includes(email)) {
+      // Cherche d'abord dans les clés exactes
+      const demoKey = Object.keys(DEMO_PROFILES).find(k => k === email)
+        || (email === 'entrepris@example.com' ? 'entreprise@example.com' : null)
+      setProfile(demoKey ? DEMO_PROFILES[demoKey] : null)
       return
     }
 
-    // Vrai compte → charge depuis Supabase
+    // ── Vrai compte Supabase ──────────────────────────────────────────────
     setLoadingProfile(true)
     try {
       const { data: utilisateur, error } = await supabase
@@ -101,137 +92,154 @@ export function UserProfileProvider({ children }) {
         .single()
 
       if (error || !utilisateur) {
-        console.error('Profil non trouvé dans Supabase:', error?.message)
-        setProfile(null)
-        setLoadingProfile(false)
+        console.warn('Profil utilisateur non trouvé, tentative de réparation…')
+        await tryRepairAndReload(authUser)
         return
       }
 
-      const role = utilisateur.role
       let extra = {}
+      const role = utilisateur.role
 
-      // Charge les données spécifiques au rôle
       if (role === 'etudiant') {
-        const { data: etudiant } = await supabase
-          .from('etudiant')
-          .select('*')
-          .eq('id_utilisateur', authUser.id)
-          .single()
-
+        const { data: e } = await supabase
+          .from('etudiant').select('*').eq('id_utilisateur', authUser.id).single()
         extra = {
-          specialization: etudiant?.filiere || '',
-          niveau: etudiant?.niveau || '',
-          date_naissance: etudiant?.date_naissance || null,
-          cvUrl: etudiant?.cv_url || null,
-          photo_url: etudiant?.photo_url || null,
+          // Noms de champs = noms BDD exacts
+          filiere:         e?.filiere || '',
+          niveau:          e?.niveau || '',
+          date_naissance:  e?.date_naissance || '',
+          cv_url:          e?.cv_url || '',
+          photo_url:       e?.photo_url || '',
         }
 
       } else if (role === 'entreprise') {
-        const { data: entreprise } = await supabase
-          .from('entreprise')
-          .select('*')
-          .eq('id_utilisateur', authUser.id)
-          .single()
-
+        const { data: e } = await supabase
+          .from('entreprise').select('*').eq('id_utilisateur', authUser.id).single()
         extra = {
-          nom_societe: entreprise?.nom_societe || '',
-          industry: entreprise?.secteur_activite || '',
-          site_web: entreprise?.site_web || '',
-          description: entreprise?.description || '',
-          statut_validation: entreprise?.statut_validation || 'en_attente',
-          logo_url: entreprise?.logo_url || null,
+          nom_societe:        e?.nom_societe || '',
+          secteur_activite:   e?.secteur_activite || '',
+          site_web:           e?.site_web || '',
+          description:        e?.description || '',
+          statut_validation:  e?.statut_validation || 'en_attente',
+          logo_url:           e?.logo_url || '',
         }
 
       } else if (role === 'administration') {
-        const { data: admin } = await supabase
-          .from('administration')
-          .select('*')
-          .eq('id_utilisateur', authUser.id)
-          .single()
-
+        const { data: a } = await supabase
+          .from('administration').select('*').eq('id_utilisateur', authUser.id).single()
         extra = {
-          departement: admin?.departement || '',
-          fonction: admin?.fonction || '',
-          niveau_acces: admin?.niveau_acces || 'lecture',
+          departement:   a?.departement || '',
+          fonction:      a?.fonction || '',
+          niveau_acces:  a?.niveau_acces || 'lecture',
         }
       }
 
-      // Construit le profil unifié
       setProfile({
-        id: authUser.id,
-        email: utilisateur.email,
-        name: `${utilisateur.prenom} ${utilisateur.nom}`,
-        nom: utilisateur.nom,
-        prenom: utilisateur.prenom,
-        role: utilisateur.role,
-        avatar: getInitials(utilisateur.nom, utilisateur.prenom),
-        phone: utilisateur.telephone || '',
-        adresse: utilisateur.adresse || '',
-        bio: '',
-        ratings: [],
-        averageRating: 0,
+        id:        authUser.id,
+        email:     utilisateur.email,
+        nom:       utilisateur.nom || '',
+        prenom:    utilisateur.prenom || '',
+        name:      `${utilisateur.prenom || ''} ${utilisateur.nom || ''}`.trim(),
+        role:      utilisateur.role,
+        avatar:    getInitials(utilisateur.prenom, utilisateur.nom),
+        telephone: utilisateur.telephone || '',
+        adresse:   utilisateur.adresse || '',
         ...extra
       })
 
     } catch (err) {
       console.error('Erreur chargement profil:', err)
+      setProfile(null)
     } finally {
       setLoadingProfile(false)
     }
   }
 
-  // ── Mise à jour du profil dans Supabase ───────────────────────────────────
+  // Recrée la ligne utilisateur depuis les metadata auth si elle manque
+  const tryRepairAndReload = async (authUser) => {
+    const meta = authUser.user_metadata || {}
+    try {
+      await supabase.from('utilisateur').insert({
+        id_utilisateur: authUser.id,
+        nom:    meta.nom    || authUser.email.split('@')[0],
+        prenom: meta.prenom || '',
+        email:  authUser.email,
+        role:   meta.role   || 'etudiant',
+        mot_de_passe: 'MANAGED_BY_SUPABASE_AUTH',
+      })
+      await loadProfile(authUser)
+    } catch (e) {
+      console.error('Réparation échouée:', e)
+      setLoadingProfile(false)
+    }
+  }
+
+  // ── Mise à jour profil ────────────────────────────────────────────────────
   const updateUserProfile = async (userId, updates) => {
-    // Compte démo → mise à jour locale uniquement
-    const email = user?.email
-    if (DEMO_EMAILS.includes(email)) {
+    // Démo → local uniquement
+    if (user?.isDemo || DEMO_EMAILS.includes(user?.email)) {
       setProfile(prev => ({ ...prev, ...updates }))
       return { success: true }
     }
 
-    // Vrai compte → mise à jour dans Supabase
-    const { error } = await supabase
-      .from('utilisateur')
-      .update({
-        nom: updates.nom,
-        prenom: updates.prenom,
-        telephone: updates.phone,
-        adresse: updates.adresse,
-      })
-      .eq('id_utilisateur', userId)
+    try {
+      // 1. Table utilisateur (champs communs)
+      const { error: e1 } = await supabase
+        .from('utilisateur')
+        .update({
+          nom:       updates.nom       || undefined,
+          prenom:    updates.prenom    || undefined,
+          telephone: updates.telephone || null,
+          adresse:   updates.adresse   || null,
+        })
+        .eq('id_utilisateur', userId)
+      if (e1) throw e1
 
-    if (error) return { success: false, error: error.message }
+      // 2. Table spécifique au rôle
+      if (profile?.role === 'etudiant') {
+        await supabase.from('etudiant').upsert({
+          id_utilisateur: userId,
+          filiere:        updates.filiere        || null,
+          niveau:         updates.niveau         || null,
+          date_naissance: updates.date_naissance || null,
+          cv_url:         updates.cv_url         || null,
+        }, { onConflict: 'id_utilisateur' })
 
-    setProfile(prev => ({ ...prev, ...updates }))
-    return { success: true }
-  }
+      } else if (profile?.role === 'entreprise') {
+        await supabase.from('entreprise').update({
+          secteur_activite: updates.secteur_activite || null,
+          site_web:         updates.site_web         || null,
+          description:      updates.description      || null,
+        }).eq('id_utilisateur', userId)
 
-  // ── Récupère le profil d'un autre utilisateur (ex: admin voit étudiant) ───
-  const getUserProfile = (emailOrId) => {
-    // Démo → retourne depuis DEMO_PROFILES
-    if (DEMO_EMAILS.includes(emailOrId)) return DEMO_PROFILES[emailOrId]
-    // Utilisateur connecté → retourne son profil chargé
-    if (profile && (profile.id === emailOrId || profile.email === emailOrId)) return profile
-    return null
-  }
+      } else if (profile?.role === 'administration') {
+        await supabase.from('administration').update({
+          departement: updates.departement || null,
+          fonction:    updates.fonction    || null,
+        }).eq('id_utilisateur', userId)
+      }
 
-  const addRating = (userId, rating) => {
-    setProfile(prev => {
-      if (!prev) return prev
-      const updatedRatings = [...(prev.ratings || []), rating]
-      const newAverage = updatedRatings.reduce((sum, r) => sum + r.rating, 0) / updatedRatings.length
-      return { ...prev, ratings: updatedRatings, averageRating: Number(newAverage.toFixed(2)) }
-    })
+      // 3. Met à jour le state local
+      setProfile(prev => ({
+        ...prev,
+        ...updates,
+        name: `${updates.prenom || prev.prenom} ${updates.nom || prev.nom}`.trim(),
+        avatar: getInitials(updates.prenom || prev.prenom, updates.nom || prev.nom),
+      }))
+      return { success: true }
+
+    } catch (err) {
+      console.error('updateUserProfile error:', err)
+      return { success: false, error: err.message }
+    }
   }
 
   return (
     <UserProfileContext.Provider value={{
-      profile,          // profil de l'utilisateur connecté
+      profile,
       loadingProfile,
-      getUserProfile,   // pour accéder au profil d'un autre user
       updateUserProfile,
-      addRating,
-      // Garde la compatibilité avec l'ancien code qui utilisait userProfiles[email]
+      // Compatibilité avec ancien code
       userProfiles: {
         ...DEMO_PROFILES,
         ...(profile ? { [profile.email]: profile } : {})

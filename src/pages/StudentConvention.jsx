@@ -15,7 +15,16 @@ export default function StudentConvention() {
   useEffect(() => {
     if (isDemo) {
       const conv = conventionsData.conventions.find(c => c.studentId === 'etudiant1')
-      setConvention(conv || null)
+      if (conv) {
+        setConvention({
+          id: conv.id, company: conv.companyName, offerTitle: conv.offerTitle,
+          startDate: conv.startDate, endDate: conv.endDate, location: conv.location || '',
+          supervisor: conv.mentor, supervisorContact: '',
+          jobDescription: '', objectives: '',
+          status: conv.status, studentSigned: conv.studentSigned || false,
+          companySigned: conv.companySigned || false, schoolSigned: conv.schoolSigned || false,
+        })
+      }
       setLoading(false)
     } else if (user) {
       fetchConvention()
@@ -25,7 +34,6 @@ export default function StudentConvention() {
   const fetchConvention = async () => {
     setLoading(true)
 
-    // Récupère l'id_etudiant
     const { data: etudiant } = await supabase
       .from('etudiant')
       .select('id_etudiant')
@@ -34,45 +42,50 @@ export default function StudentConvention() {
 
     if (!etudiant) { setLoading(false); return }
 
-    // Cherche la convention liée à une candidature de cet étudiant
+    // convention → stage → candidature → etudiant
     const { data, error } = await supabase
       .from('convention')
       .select(`
         *,
-        candidature(
-          offreStage(titre, lieu, entreprise(nom_societe))
+        stage(
+          id_stage, date_debut, date_fin, encadrant_entreprise,
+          candidature(
+            id_etudiant,
+            offreStage(titre, lieu, entreprise(nom_societe))
+          )
         )
       `)
-      .eq('candidature.id_etudiant', etudiant.id_etudiant)
-      .order('date_creation', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .order('date_generation', { ascending: false })
 
     if (!error && data) {
-      setConvention({
-        id: data.id_convention,
-        company: data.candidature?.offreStage?.entreprise?.nom_societe || '',
-        offerTitle: data.candidature?.offreStage?.titre || '',
-        startDate: data.date_debut,
-        endDate: data.date_fin,
-        location: data.lieu,
-        supervisor: data.superviseur,
-        supervisorContact: data.contact_superviseur,
-        jobDescription: data.description_poste,
-        objectives: data.objectifs,
-        status: data.statut,
-        studentSigned: data.signature_etudiant,
-        companySigned: data.signature_entreprise,
-        schoolSigned: data.signature_etablissement,
-      })
+      // Filtre côté client pour l'étudiant connecté
+      const conv = data.find(c => c.stage?.candidature?.id_etudiant === etudiant.id_etudiant)
+      if (conv) {
+        setConvention({
+          id: conv.id_convention,
+          id_stage: conv.id_stage,
+          company: conv.stage?.candidature?.offreStage?.entreprise?.nom_societe || '',
+          offerTitle: conv.stage?.candidature?.offreStage?.titre || '',
+          startDate: conv.date_debut,
+          endDate: conv.date_fin,
+          location: conv.lieu || conv.stage?.candidature?.offreStage?.lieu || '',
+          supervisor: conv.superviseur || conv.stage?.encadrant_entreprise || '',
+          supervisorContact: conv.contact_superviseur || '',
+          jobDescription: conv.description_poste || '',
+          objectives: conv.objectifs || '',
+          status: conv.statut,
+          studentSigned: conv.signature_etudiant,
+          companySigned: conv.signature_entreprise,
+          schoolSigned: conv.signature_ecole,
+          rejectionReason: conv.raison_rejet,
+        })
+      }
     }
     setLoading(false)
   }
 
-  // ── Signer la convention ─────────────────────────────────────────────────
   const handleSign = async () => {
     setSigning(true)
-
     if (isDemo) {
       setConvention(prev => ({ ...prev, studentSigned: true }))
       setSuccessMsg('Vous avez signé la convention !')
@@ -81,10 +94,10 @@ export default function StudentConvention() {
       return
     }
 
-    const { error } = await supabase
-      .from('convention')
-      .update({ signature_etudiant: true })
-      .eq('id_convention', convention.id)
+    const { error } = await supabase.rpc('convention_signer', {
+      p_id_convention: convention.id,
+      p_type_signataire: 'etudiant',
+    })
 
     if (!error) {
       await fetchConvention()
@@ -95,38 +108,44 @@ export default function StudentConvention() {
   }
 
   const getStatusInfo = (status, studentSigned) => {
-    if (status === 'rejetee') return { label: 'Rejetée', color: 'bg-red-100 text-red-700' }
-    if (status === 'signee_tous') return { label: '✅ Complète', color: 'bg-green-100 text-green-800' }
-    if (studentSigned) return { label: 'Signée par vous', color: 'bg-blue-100 text-blue-700' }
-    if (status === 'validee') return { label: 'En attente de signature', color: 'bg-amber-100 text-amber-700' }
-    return { label: 'En attente de validation', color: 'bg-gray-100 text-gray-600' }
+    if (status === 'annulee') return { label: 'Annulée', color: 'bg-red-100 text-red-700' }
+    if (status === 'validee') return { label: '✅ Validée par l\'établissement', color: 'bg-green-100 text-green-800' }
+    if (studentSigned) return { label: 'Signée par vous ✓', color: 'bg-blue-100 text-blue-700' }
+    if (status === 'en_attente' || status === 'en_cours') return { label: 'En attente de signature', color: 'bg-amber-100 text-amber-700' }
+    return { label: status, color: 'bg-gray-100 text-gray-600' }
   }
 
-  if (loading) {
-    return <div className="card-soft text-center py-12"><p className="text-muted-foreground">Chargement…</p></div>
-  }
+  if (loading) return <div className="card-soft text-center py-12"><p className="text-muted-foreground">Chargement…</p></div>
 
   if (!convention) {
     return (
       <div className="card-soft text-center py-12">
         <div className="text-4xl mb-4">📋</div>
-        <p className="text-foreground font-semibold mb-2">Pas encore de convention</p>
-        <p className="text-muted-foreground text-sm">
-          Votre convention sera créée par l'administration une fois votre candidature acceptée.
+        <p className="font-semibold text-foreground mb-2">Pas encore de convention</p>
+        <p className="text-sm text-muted-foreground">
+          L'administration créera votre convention une fois votre candidature acceptée par l'entreprise.
         </p>
+        <div className="mt-4 text-left max-w-xs mx-auto text-sm text-muted-foreground">
+          <p className="font-medium text-foreground mb-2">Étapes :</p>
+          <ol className="space-y-1 list-decimal list-inside">
+            <li>Postulez à une offre de stage</li>
+            <li>L'entreprise accepte votre candidature</li>
+            <li>L'administration génère la convention</li>
+            <li>Vous signez ici</li>
+          </ol>
+        </div>
       </div>
     )
   }
 
   const statusInfo = getStatusInfo(convention.status, convention.studentSigned)
-  const canSign = (convention.status === 'validee' || convention.status === 'en_attente') && !convention.studentSigned
+  const canSign = !convention.studentSigned && (convention.status === 'en_attente' || convention.status === 'en_cours')
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="card-soft">
         <h2 className="text-2xl font-bold text-foreground">Ma Convention de Stage</h2>
-        <p className="text-muted-foreground mt-1">Consultez et signez votre convention de stage</p>
+        <p className="text-muted-foreground mt-1">Consultez et signez votre convention</p>
       </div>
 
       {successMsg && (
@@ -135,26 +154,24 @@ export default function StudentConvention() {
         </div>
       )}
 
-      {/* Statut + action */}
-      <div className="card-soft border border-border flex items-center justify-between">
+      {/* Statut + bouton signer */}
+      <div className="card-soft border border-border flex items-center justify-between flex-wrap gap-3">
         <div>
-          <p className="text-sm text-muted-foreground mb-1">Statut de la convention</p>
+          <p className="text-sm text-muted-foreground mb-1">Statut</p>
           <span className={`text-sm px-3 py-1 rounded-full font-semibold ${statusInfo.color}`}>
             {statusInfo.label}
           </span>
         </div>
-        {canSign && (
-          <button onClick={handleSign} disabled={signing}
-            className="btn-primary disabled:opacity-50">
-            {signing ? 'Signature en cours…' : '✍️ Signer la convention'}
+        {canSign ? (
+          <button onClick={handleSign} disabled={signing} className="btn-primary disabled:opacity-50">
+            {signing ? 'Signature…' : '✍️ Signer la convention'}
           </button>
-        )}
-        {convention.studentSigned && !canSign && (
+        ) : convention.studentSigned ? (
           <span className="text-sm text-green-600 font-medium">✅ Vous avez signé</span>
-        )}
+        ) : null}
       </div>
 
-      {/* Infos rapides */}
+      {/* Infos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card-soft border border-border text-center">
           <p className="text-xs text-muted-foreground mb-1">Entreprise</p>
@@ -173,28 +190,26 @@ export default function StudentConvention() {
 
       {/* Détails */}
       <div className="card-soft">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Informations Détaillées</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Informations détaillées</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Superviseur</label>
+            <p className="text-sm text-muted-foreground mb-1">Superviseur</p>
             <p className="text-foreground">{convention.supervisor || '—'}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Contact superviseur</label>
+            <p className="text-sm text-muted-foreground mb-1">Contact</p>
             <p className="text-foreground">{convention.supervisorContact || '—'}</p>
           </div>
         </div>
-
         {convention.jobDescription && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Description du poste</label>
+          <div className="mb-3">
+            <p className="text-sm text-muted-foreground mb-1">Description du poste</p>
             <p className="text-foreground bg-muted rounded-lg p-3 text-sm">{convention.jobDescription}</p>
           </div>
         )}
-
         {convention.objectives && (
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Objectifs pédagogiques</label>
+            <p className="text-sm text-muted-foreground mb-1">Objectifs pédagogiques</p>
             <p className="text-foreground bg-muted rounded-lg p-3 text-sm">{convention.objectives}</p>
           </div>
         )}
@@ -202,26 +217,18 @@ export default function StudentConvention() {
 
       {/* Signatures */}
       <div className="card-soft">
-        <h3 className="text-lg font-semibold text-foreground mb-4">État des Signatures</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">État des signatures</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { label: 'Étudiant', signed: convention.studentSigned, isYou: true },
-            { label: 'Entreprise', signed: convention.companySigned, isYou: false },
-            { label: 'Établissement', signed: convention.schoolSigned, isYou: false },
+            { label: 'Étudiant', sublabel: '(vous)', signed: convention.studentSigned },
+            { label: 'Entreprise', sublabel: '', signed: convention.companySigned },
+            { label: 'Établissement', sublabel: '', signed: convention.schoolSigned },
           ].map(sig => (
-            <div key={sig.label}
-              className={`border-2 rounded-lg p-4 text-center transition ${
-                sig.signed ? 'border-green-300 bg-green-50' : 'border-dashed border-border'
-              }`}>
-              <p className="text-sm font-medium text-foreground mb-3">
-                {sig.label} {sig.isYou && <span className="text-xs text-muted-foreground">(vous)</span>}
-              </p>
-              <div className={`h-16 rounded flex items-center justify-center text-2xl ${
-                sig.signed ? '' : 'text-muted-foreground'
-              }`}>
-                {sig.signed ? '✅' : '⏳'}
-              </div>
-              <p className={`text-xs mt-2 ${sig.signed ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
+            <div key={sig.label} className={`border-2 rounded-lg p-4 text-center transition ${sig.signed ? 'border-green-300 bg-green-50' : 'border-dashed border-border'}`}>
+              <p className="text-sm font-medium text-foreground mb-1">{sig.label}</p>
+              {sig.sublabel && <p className="text-xs text-muted-foreground mb-3">{sig.sublabel}</p>}
+              <div className="text-3xl my-2">{sig.signed ? '✅' : '⏳'}</div>
+              <p className={`text-xs ${sig.signed ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
                 {sig.signed ? 'Signé' : 'En attente'}
               </p>
             </div>
@@ -229,13 +236,10 @@ export default function StudentConvention() {
         </div>
       </div>
 
-      {/* Rejet */}
-      {convention.status === 'rejetee' && (
+      {convention.rejectionReason && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm font-medium text-red-800 mb-1">Convention rejetée par l'administration</p>
-          {convention.rejectionReason && (
-            <p className="text-sm text-red-700">{convention.rejectionReason}</p>
-          )}
+          <p className="text-sm font-medium text-red-800">Convention annulée par l'administration</p>
+          <p className="text-sm text-red-700 mt-1">{convention.rejectionReason}</p>
         </div>
       )}
     </div>
